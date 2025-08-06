@@ -21,7 +21,13 @@ color_palette = {
     "Soft Peach": "#fee8c8",
     "Orange Mid": "#fdbb84",
     "Strong Orange": "#e34a33",
-    "Black (Default)": "#000000"
+    "Black (Default)": "#000000",
+    "Ateneo Blue": "#003A6B",
+    "Blue Sapphire": "#1B5886",
+    "Queen Blue": "#3776A1",
+    "Silver Lake Blue": "#5293BB",
+    "Iceberg": "#6EB1D6",
+    "Baby Blue": "#89CFF1"
 }
 
 # Helper function to load data from Excel
