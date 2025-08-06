@@ -11,7 +11,9 @@ def load_excel(file):
     try:
         df = pd.read_excel(file, skiprows=1, names=["No.", "Water"])
         df = df.dropna()
-        df["Water"] = pd.to_numeric(df["Water"].str.replace(',', '.'), errors='coerce')
+        # Convert to string to handle commas and then to numeric
+        df["Water"] = df["Water"].astype(str).str.replace(',', '.')
+        df["Water"] = pd.to_numeric(df["Water"], errors='coerce')
         return df
     except Exception as e:
         st.error(f"Error loading {file.name}: {e}")
@@ -91,3 +93,4 @@ if uploaded_files:
 
 else:
     st.info("Please upload at least one Excel file.")
+
