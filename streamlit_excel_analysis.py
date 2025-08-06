@@ -74,8 +74,10 @@ if uploaded_files:
             "color": "#000000",
             "label": "Combined"
         }
+        labels = list(dfs.keys()) + ["Combined"]
+    else:
+        labels = list(dfs.keys())
 
-    labels = list(dfs.keys()) + ("Combined" if combine_files else [])
     visible_bars = st.multiselect("Select bars to display", labels, default=labels)
     font_size = st.slider("Font size", min_value=8, max_value=24, value=15)
 
@@ -138,3 +140,4 @@ if uploaded_files:
 
 else:
     st.info("Please upload at least one Excel file.")
+
