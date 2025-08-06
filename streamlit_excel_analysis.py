@@ -1,4 +1,3 @@
-""
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -29,13 +28,18 @@ color_palette = {
 def load_excel(file):
     try:
         df = pd.read_excel(file, skiprows=1, names=["No.", "Water"])
-        df = df.dropna()
         df["Water"] = df["Water"].astype(str).str.replace(',', '.')
         df["Water"] = pd.to_numeric(df["Water"], errors='coerce')
-        return df
+
+        # Extract only numeric rows
+        data_rows = df[pd.to_numeric(df["No."], errors='coerce').notnull()]
+        mean_value = data_rows["Water"].mean()
+        std_dev_value = data_rows["Water"].std()
+
+        return data_rows, mean_value, std_dev_value
     except Exception as e:
         st.error(f"Error loading {file.name}: {e}")
-        return None
+        return None, None, None
 
 uploaded_files = st.file_uploader("Upload Excel files", type=["xls", "xlsx"], accept_multiple_files=True)
 
@@ -46,10 +50,10 @@ if uploaded_files:
     settings = {}
 
     for i, file in enumerate(uploaded_files):
-        df = load_excel(file)
+        df, mean, std_dev = load_excel(file)
         if df is not None:
-            means.append(df["Water"].mean())
-            std_devs.append(df["Water"].std())
+            means.append(mean)
+            std_devs.append(std_dev)
             name = file.name
             dfs[name] = df
             settings[name] = {
@@ -61,20 +65,17 @@ if uploaded_files:
 
     if combine_files:
         selected_files = st.multiselect("Select files to average", list(dfs.keys()), default=list(dfs.keys()))
-        selected_means = [means[i] for i, name in enumerate(dfs) if name in selected_files]
-        selected_stds = [std_devs[i] for i, name in enumerate(dfs) if name in selected_files]
+        combined_data = pd.concat([dfs[name] for name in selected_files])
+        combined_mean = combined_data["Water"].mean()
+        combined_std = combined_data["Water"].std()
+        means.append(combined_mean)
+        std_devs.append(combined_std)
+        settings["Combined"] = {
+            "color": "#000000",
+            "label": "Combined"
+        }
 
-        if selected_means:
-            combined_mean = np.mean(selected_means)
-            combined_std = np.sqrt(np.mean(np.array(selected_stds) ** 2))
-            means.append(combined_mean)
-            std_devs.append(combined_std)
-            settings["Combined"] = {
-                "color": "#000000",
-                "label": "Combined"
-            }
-
-    labels = list(dfs.keys()) + (["Combined"] if combine_files else [])
+    labels = list(dfs.keys()) + ("Combined" if combine_files else [])
     visible_bars = st.multiselect("Select bars to display", labels, default=labels)
     font_size = st.slider("Font size", min_value=8, max_value=24, value=15)
 
@@ -113,7 +114,12 @@ if uploaded_files:
     st.pyplot(fig)
 
     # Table preview
-    table_data = {"File": [settings[label]["label"] for label in labels], "Mean": means, "Std Dev": std_devs}
+    table_data = {
+        "File": [settings[label]["label"] for label in labels],
+        "Source Files": labels,
+        "Mean": means,
+        "Std Dev": std_devs
+    }
     table_df = pd.DataFrame(table_data)
     st.dataframe(table_df)
 
