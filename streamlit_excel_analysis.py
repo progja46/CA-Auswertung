@@ -78,32 +78,70 @@ if uploaded_files:
     else:
         labels = list(dfs.keys())
 
-  # Auswahl der sichtbaren Balken
-st.markdown("### Customize Displayed Bars and Order")
+    # Auswahl der sichtbaren Balken und deren Reihenfolge
+    st.markdown("### Customize Displayed Bars and Order")
+    visible_bars = st.multiselect("Select bars to display", labels, default=labels)
+    bar_order = st.multiselect("Select bar order (drag to reorder)", visible_bars, default=visible_bars)
+    ordered_visible_bars = [label for label in bar_order if label in visible_bars]
 
-visible_bars = st.multiselect("Select bars to display", labels, default=labels)
+    font_size = st.slider("Font size", min_value=8, max_value=24, value=15)
 
-# Auswahl der Reihenfolge – nur für sichtbare Balken sinnvoll
-bar_order = st.multiselect("Select bar order (drag to reorder)", visible_bars, default=visible_bars)
+    st.subheader("Customize Appearance")
+    for name in labels:
+        if name not in settings:
+            continue
+        cols = st.columns([3, 2, 2])
+        with cols[0]:
+            settings[name]["label"] = st.text_input(f"Label for {name}", value=settings[name]["label"], key=f"label_{name}")
+        with cols[1]:
+            color_name = st.selectbox(
+                f"Color for {name}",
+                options=list(color_palette.keys()),
+                index=list(color_palette.values()).index(settings[name]["color"]) if settings[name]["color"] in color_palette.values() else 0,
+                key=f"color_select_{name}"
+            )
+        with cols[2]:
+            settings[name]["color"] = st.color_picker(f"Pick color for {name}", value=color_palette[color_name], key=f"picker_{name}")
 
-# Final geordnete, sichtbare Balken
-ordered_visible_bars = [label for label in bar_order if label in visible_bars]
+    # Plotting
+    fig, ax = plt.subplots()
 
-# Schriftgröße
-font_size = st.slider("Font size", min_value=8, max_value=24, value=15)
+    bar_heights = [means[labels.index(label)] for label in ordered_visible_bars]
+    bar_errors = [std_devs[labels.index(label)] for label in ordered_visible_bars]
+    bar_labels = [settings[label]["label"] for label in ordered_visible_bars]
+    bar_colors = [settings[label]["color"] for label in ordered_visible_bars]
+    indices = range(len(ordered_visible_bars))
 
-# Plotting
-fig, ax = plt.subplots()
+    ax.bar(indices, bar_heights, yerr=bar_errors, capsize=5, color=bar_colors)
+    ax.set_xticks(indices)
+    ax.set_xticklabels(bar_labels, fontsize=font_size)
+    ax.set_ylabel("Contact angle (°)", fontsize=font_size)
 
-bar_heights = [means[labels.index(label)] for label in ordered_visible_bars]
-bar_errors = [std_devs[labels.index(label)] for label in ordered_visible_bars]
-bar_labels = [settings[label]["label"] for label in ordered_visible_bars]
-bar_colors = [settings[label]["color"] for label in ordered_visible_bars]
-indices = range(len(ordered_visible_bars))
+    st.pyplot(fig)
 
-ax.bar(indices, bar_heights, yerr=bar_errors, capsize=5, color=bar_colors)
-ax.set_xticks(indices)
-ax.set_xticklabels(bar_labels, fontsize=font_size)
-ax.set_ylabel("Contact angle (°)", fontsize=font_size)
+    # Table preview
+    table_data = {
+        "File": [settings[label]["label"] for label in labels],
+        "Source Files": labels,
+        "Mean": means,
+        "Std Dev": std_devs
+    }
+    table_df = pd.DataFrame(table_data)
+    st.dataframe(table_df)
 
-st.pyplot(fig)
+    file_name = st.text_input("Output file name (without extension)", value="results")
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    st.download_button("Download plot as PNG", buf, f"{file_name}.png", "image/png")
+
+    excel_buf = io.BytesIO()
+    with pd.ExcelWriter(excel_buf, engine="xlsxwriter") as writer:
+        table_df.to_excel(writer, index=False)
+    excel_buf.seek(0)
+    st.download_button("Download table as Excel", excel_buf, f"{file_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+else:
+    st.info("Please upload at least one Excel file.")
+
