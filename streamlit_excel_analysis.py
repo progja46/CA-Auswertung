@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import io
+import pyperclip
 
 st.set_page_config(layout="wide")
 
@@ -119,15 +120,20 @@ if uploaded_files:
 
     st.pyplot(fig)
 
-    # Table preview
+    # Table preview (rounded to 2 decimal places)
     table_data = {
         "File": [settings[label]["label"] for label in labels],
         "Source Files": labels,
-        "Mean": means,
-        "Std Dev": std_devs
+        "Mean": [round(val, 2) for val in means],
+        "Std Dev": [round(val, 2) for val in std_devs]
     }
     table_df = pd.DataFrame(table_data)
     st.dataframe(table_df)
+
+    # Button to copy table to clipboard (requires Pyperclip to be supported on client – optional fallback)
+    st.text("Copy table to clipboard:")
+    csv_string = table_df.to_csv(index=False, sep='\t')
+    st.code(csv_string)
 
     file_name = st.text_input("Output file name (without extension)", value="results")
 
@@ -140,6 +146,11 @@ if uploaded_files:
     with pd.ExcelWriter(excel_buf, engine="xlsxwriter") as writer:
         table_df.to_excel(writer, index=False)
     excel_buf.seek(0)
+    st.download_button("Download table as Excel", excel_buf, f"{file_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+else:
+    st.info("Please upload at least one Excel file.")
+
     st.download_button("Download table as Excel", excel_buf, f"{file_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 else:
