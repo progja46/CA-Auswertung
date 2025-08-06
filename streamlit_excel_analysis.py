@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import io
-import pyperclip
 
 st.set_page_config(layout="wide")
 
@@ -130,8 +129,8 @@ if uploaded_files:
     table_df = pd.DataFrame(table_data)
     st.dataframe(table_df)
 
-    # Button to copy table to clipboard (requires Pyperclip to be supported on client – optional fallback)
-    st.text("Copy table to clipboard:")
+    # Optional: Provide CSV as text to manually copy
+    st.markdown("#### Copy table as tab-separated values")
     csv_string = table_df.to_csv(index=False, sep='\t')
     st.code(csv_string)
 
@@ -150,9 +149,3 @@ if uploaded_files:
 
 else:
     st.info("Please upload at least one Excel file.")
-
-    st.download_button("Download table as Excel", excel_buf, f"{file_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-else:
-    st.info("Please upload at least one Excel file.")
-
